@@ -1,0 +1,80 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.feature_selection import SelectKBest
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+
+# Load the dataset (assuming it's in the same directory or specified path)
+file_path = 'MultipleFiles/Telco_Customer_Churn_Dataset (3) (1).csv'
+df = pd.read_csv(file_path)
+
+# --- Data Preparation (from Task 1) ---
+# Convert 'TotalCharges' to numeric and handle missing values
+df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+df['TotalCharges'].fillna(0, inplace=True)
+
+# Encode 'Churn' before EDA for consistency and easier plotting
+if df['Churn'].dtype == 'object':
+    le_churn = LabelEncoder()
+    df['Churn_Encoded'] = le_churn.fit_transform(df['Churn'])
+    # Map 0 to 'No' and 1 to 'Yes' for clarity in plots
+    df['Churn_Label'] = df['Churn'].map({'No': 0, 'Yes': 1})
+else:
+    df['Churn_Encoded'] = df['Churn']
+    df['Churn_Label'] = df['Churn'] # Assuming it's already 0/1 if not object
+
+# --- Task 5: Model Evaluation and Interpretation ---
+
+# Select relevant features for modeling
+features = ['SeniorCitizen', 'Partner', 'Dependents', 'tenure', 'PhoneService', 'MultipleLines', 'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies', 'Contract', 'PaperlessBilling', 'PaymentMethod', 'MonthlyCharges', 'TotalCharges']
+
+# Split data into training and testing sets
+X = df[features]
+y = df['Churn_Label']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Scale the features using StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Define and train the best model
+best_model = LogisticRegression()
+best_model.fit(X_train_scaled, y_train)
+
+# Evaluate the best model on the testing dataset
+y_pred = best_model.predict(X_test_scaled)
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+auc = roc_auc_score(y_test, best_model.predict_proba(X_test_scaled)[:, 1])
+print("Best Model Evaluation Metrics:")
+print(f"Accuracy: {accuracy:.3f}")
+print(f"Precision: {precision:.3f}")
+print(f"Recall: {recall:.3f}")
+print(f"F1-score: {f1:.3f}")
+print(f"AUC: {auc:.3f}")
+
+# Interpret model coefficients
+print("Model Coefficients:")
+print(best_model.coef_)
+
+# Create ROC curves and calculate AUC
+fpr, tpr, thresholds = roc_curve(y_test, best_model.predict_proba(X_test_scaled)[:, 1])
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, color='blue', lw=2, label='ROC Curve')
+plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.legend(loc="lower right")
+plt.show()
