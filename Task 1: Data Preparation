@@ -1,0 +1,74 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# Load the dataset
+file_path = 'MultipleFiles/Telco_Customer_Churn_Dataset (3) (1).csv'
+df = pd.read_csv(file_path)
+
+# --- Task 1: Data Preparation ---
+
+# 1. Initial Exploration and Handling Missing Values
+print("Initial Data Info:")
+print(df.info())
+
+print("\nMissing values before handling:")
+print(df.isnull().sum())
+
+# Convert 'TotalCharges' to numeric. Missing values in TotalCharges are represented as ' '
+# These are likely new customers with 0 tenure and thus 0 total charges.
+df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+
+# Fill missing 'TotalCharges' with 0 (for new customers with 0 tenure)
+df['TotalCharges'].fillna(0, inplace=True)
+
+print("\nMissing values after handling 'TotalCharges':")
+print(df.isnull().sum())
+
+# 2. Convert Categorical Variables into Numerical Representations
+# Identify categorical columns (excluding 'customerID' and 'Churn' which will be our target)
+categorical_cols = df.select_dtypes(include='object').columns.tolist()
+categorical_cols.remove('customerID') # customerID is an identifier, not a feature
+if 'Churn' in categorical_cols:
+    categorical_cols.remove('Churn') # Churn is the target variable
+
+print(f"\nCategorical columns to encode: {categorical_cols}")
+
+# Apply Label Encoding to binary categorical columns and One-Hot Encoding to multi-category columns
+for col in categorical_cols:
+    if df[col].nunique() == 2:
+        # Binary categorical variable, use LabelEncoder
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col])
+        print(f"Encoded '{col}' using LabelEncoder. Mappings: {list(le.classes_)}")
+    else:
+        # Multi-category variable, use One-Hot Encoding
+        df = pd.get_dummies(df, columns=[col], prefix=col, drop_first=True) # drop_first to avoid multicollinearity
+        print(f"Encoded '{col}' using One-Hot Encoding.")
+
+# Encode the 'Churn' target variable
+if df['Churn'].dtype == 'object':
+    le_churn = LabelEncoder()
+    df['Churn'] = le_churn.fit_transform(df['Churn'])
+    print(f"\nEncoded 'Churn' using LabelEncoder. Mappings: {list(le_churn.classes_)}")
+
+print("\nData types after encoding:")
+print(df.info())
+
+# 3. Split the Dataset into Training and Testing Sets
+# Define features (X) and target (y)
+X = df.drop(['customerID', 'Churn'], axis=1)
+y = df['Churn']
+
+# Split the data into training and testing sets (e.g., 80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+print("\nDataset Split Information:")
+print(f"Original dataset shape: {df.shape}")
+print(f"X_train shape: {X_train.shape}")
+print(f"X_test shape: {X_test.shape}")
+print(f"y_train shape: {y_train.shape}")
+print(f"y_test shape: {y_test.shape}")
+
+print("\nFirst 5 rows of the preprocessed data (features only):")
+print(X_train.head())
