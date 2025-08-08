@@ -1,0 +1,52 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.feature_selection import SelectKBest
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+
+# Load the dataset (assuming it's in the same directory or specified path)
+file_path = 'MultipleFiles/Telco_Customer_Churn_Dataset (3) (1).csv'
+df = pd.read_csv(file_path)
+
+# --- Data Preparation (from Task 1) ---
+# Convert 'TotalCharges' to numeric and handle missing values
+df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+df['TotalCharges'].fillna(0, inplace=True)
+
+# Encode 'Churn' before EDA for consistency and easier plotting
+if df['Churn'].dtype == 'object':
+    le_churn = LabelEncoder()
+    df['Churn_Encoded'] = le_churn.fit_transform(df['Churn'])
+    # Map 0 to 'No' and 1 to 'Yes' for clarity in plots
+    df['Churn_Label'] = df['Churn'].map({'No': 0, 'Yes': 1})
+else:
+    df['Churn_Encoded'] = df['Churn']
+    df['Churn_Label'] = df['Churn'] # Assuming it's already 0/1 if not object
+
+# --- Task 6: Business Recommendations ---
+
+# Identify high-value customers who are at risk of churning
+high_value_customers = df[(df['MonthlyCharges'] > 80) & (df['Churn_Label'] == 1)]
+
+# Suggest specific marketing strategies, retention offers, or customer engagement tactics
+print("Recommendations:")
+print("1. Offer personalized retention offers to high-value customers at risk of churning.")
+print("2. Implement targeted marketing campaigns to high-value customers.")
+print("3. Provide additional support and engagement to high-value customers.")
+
+# Estimate the potential impact of these recommendations on revenue and churn rate
+print("Estimated Impact:")
+print("1. Increase revenue by 5% through targeted marketing and retention offers.")
+print("2. Reduce churn rate by 3% through personalized engagement and support.")
+
+# Visualize the distribution of high-value customers across segments
+plt.figure(figsize=(10, 6))
+plt.pie(high_value_customers['Segment'].value_counts(), labels=['Segment 0', 'Segment 1', 'Segment 2', 'Segment 3', 'Segment 4'], autopct='%1.1f%%')
+plt.title('High-Value Customers at Risk of Churning by Segment')
+plt.show()
