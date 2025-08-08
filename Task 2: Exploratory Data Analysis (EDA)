@@ -1,0 +1,99 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# Load the dataset (assuming it's in the same directory or specified path)
+file_path = 'MultipleFiles/Telco_Customer_Churn_Dataset (3) (1).csv'
+df = pd.read_csv(file_path)
+
+# --- Data Preparation (from Task 1, necessary for EDA) ---
+# Convert 'TotalCharges' to numeric and handle missing values
+df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+df['TotalCharges'].fillna(0, inplace=True)
+
+# Encode 'Churn' before EDA for consistency and easier plotting
+if df['Churn'].dtype == 'object':
+    le_churn = LabelEncoder()
+    df['Churn_Encoded'] = le_churn.fit_transform(df['Churn'])
+    # Map 0 to 'No' and 1 to 'Yes' for clarity in plots
+    df['Churn_Label'] = df['Churn'].map({'No': 0, 'Yes': 1})
+else:
+    df['Churn_Encoded'] = df['Churn']
+    df['Churn_Label'] = df['Churn'] # Assuming it's already 0/1 if not object
+
+# --- Task 2: Exploratory Data Analysis (EDA) ---
+
+# Set style for plots
+sns.set_style("whitegrid")
+plt.figure(figsize=(18, 12))
+
+# 1. Calculate and visually represent the overall churn rate
+plt.subplot(2, 3, 1)
+churn_rate = df['Churn_Label'].value_counts(normalize=True) * 100
+sns.barplot(x=churn_rate.index, y=churn_rate.values, palette='viridis')
+plt.title('Overall Churn Rate', fontsize=14)
+plt.xlabel('Churn (0: No, 1: Yes)', fontsize=12)
+plt.ylabel('Percentage (%)', fontsize=12)
+plt.xticks(ticks=[0, 1], labels=['No Churn', 'Churn'])
+for index, value in enumerate(churn_rate.values):
+    plt.text(index, value + 0.5, f'{value:.2f}%', ha='center', va='bottom', fontsize=10)
+
+# 2. Explore customer distribution by gender, partner status, and dependent status.
+# Gender Distribution
+plt.subplot(2, 3, 2)
+sns.countplot(data=df, x='gender', hue='Churn_Label', palette='coolwarm')
+plt.title('Churn Distribution by Gender', fontsize=14)
+plt.xlabel('Gender', fontsize=12)
+plt.ylabel('Number of Customers', fontsize=12)
+plt.legend(title='Churn', labels=['No', 'Yes'])
+
+# Partner Status Distribution
+plt.subplot(2, 3, 3)
+sns.countplot(data=df, x='Partner', hue='Churn_Label', palette='coolwarm')
+plt.title('Churn Distribution by Partner Status', fontsize=14)
+plt.xlabel('Partner', fontsize=12)
+plt.ylabel('Number of Customers', fontsize=12)
+plt.legend(title='Churn', labels=['No', 'Yes'])
+
+# Dependent Status Distribution
+plt.subplot(2, 3, 4)
+sns.countplot(data=df, x='Dependents', hue='Churn_Label', palette='coolwarm')
+plt.title('Churn Distribution by Dependent Status', fontsize=14)
+plt.xlabel('Dependents', fontsize=12)
+plt.ylabel('Number of Customers', fontsize=12)
+plt.legend(title='Churn', labels=['No', 'Yes'])
+
+# 3. Analyze tenure distribution and its relation with churn.
+plt.subplot(2, 3, 5)
+sns.histplot(data=df, x='tenure', hue='Churn_Label', multiple='stack', bins=30, palette='magma', kde=True)
+plt.title('Tenure Distribution and Churn', fontsize=14)
+plt.xlabel('Tenure (Months)', fontsize=12)
+plt.ylabel('Number of Customers', fontsize=12)
+plt.legend(title='Churn', labels=['No', 'Yes'])
+
+# 4. Investigate how churn varies across different contract types and payment methods.
+plt.tight_layout() # Adjust layout to prevent overlapping titles/labels
+plt.figure(figsize=(18, 6))
+
+# Churn by Contract Type
+plt.subplot(1, 2, 1)
+sns.countplot(data=df, x='Contract', hue='Churn_Label', palette='plasma')
+plt.title('Churn Distribution by Contract Type', fontsize=14)
+plt.xlabel('Contract Type', fontsize=12)
+plt.ylabel('Number of Customers', fontsize=12)
+plt.legend(title='Churn', labels=['No', 'Yes'])
+plt.xticks(rotation=15)
+
+# Churn by Payment Method
+plt.subplot(1, 2, 2)
+sns.countplot(data=df, x='PaymentMethod', hue='Churn_Label', palette='cividis')
+plt.title('Churn Distribution by Payment Method', fontsize=14)
+plt.xlabel('Payment Method', fontsize=12)
+plt.ylabel('Number of Customers', fontsize=12)
+plt.legend(title='Churn', labels=['No', 'Yes'])
+plt.xticks(rotation=30, ha='right')
+
+plt.tight_layout()
+plt.show()
