@@ -1,0 +1,55 @@
+import pandas as pd
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+# Load the dataset (assuming it's in the same directory or specified path)
+file_path = 'MultipleFiles/Telco_Customer_Churn_Dataset (3) (1).csv'
+df = pd.read_csv(file_path)
+
+# --- Data Preparation (from Task 1) ---
+# Convert 'TotalCharges' to numeric and handle missing values
+df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+df['TotalCharges'].fillna(0, inplace=True)
+
+# Encode 'Churn' before EDA for consistency and easier plotting
+if df['Churn'].dtype == 'object':
+    le_churn = LabelEncoder()
+    df['Churn_Encoded'] = le_churn.fit_transform(df['Churn'])
+    # Map 0 to 'No' and 1 to 'Yes' for clarity in plots
+    df['Churn_Label'] = df['Churn'].map({'No': 0, 'Yes': 1})
+else:
+    df['Churn_Encoded'] = df['Churn']
+    df['Churn_Label'] = df['Churn'] # Assuming it's already 0/1 if not object
+
+# --- Task 3: Customer Segmentation ---
+
+# Select relevant features for clustering
+features = ['tenure', 'MonthlyCharges', 'Contract']
+
+# Scale the features using StandardScaler
+scaler = StandardScaler()
+scaled_features = scaler.fit_transform(df[features])
+
+# Perform K-means clustering
+kmeans = KMeans(n_clusters=5)
+customer_segments = kmeans.fit_predict(scaled_features)
+
+# Add the cluster labels to the DataFrame
+df['Segment'] = customer_segments
+
+# Analyze churn rates within these segments
+churn_rates = df.groupby('Segment')['Churn_Label'].mean() * 100
+print("Churn Rates by Segment:")
+print(churn_rates)
+
+# Identify high-value customers who are at risk of churning
+high_value_customers = df[(df['MonthlyCharges'] > 80) & (df['Churn_Label'] == 1)]
+print("High-Value Customers at Risk of Churning:")
+print(high_value_customers.head())
+
+# Visualize the distribution of high-value customers across segments
+plt.figure(figsize=(10, 6))
+plt.pie(high_value_customers['Segment'].value_counts(), labels=['Segment 0', 'Segment 1', 'Segment 2', 'Segment 3', 'Segment 4'], autopct='%1.1f%%')
+plt.title('High-Value Customers at Risk of Churning by Segment')
+plt.show()
