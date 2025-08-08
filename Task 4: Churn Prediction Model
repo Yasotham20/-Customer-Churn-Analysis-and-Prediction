@@ -1,0 +1,94 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.feature_selection import SelectKBest
+
+# Load the dataset (assuming it's in the same directory or specified path)
+file_path = 'MultipleFiles/Telco_Customer_Churn_Dataset (3) (1).csv'
+df = pd.read_csv(file_path)
+
+# --- Data Preparation (from Task 1) ---
+# Convert 'TotalCharges' to numeric and handle missing values
+df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+df['TotalCharges'].fillna(0, inplace=True)
+
+# Encode 'Churn' before EDA for consistency and easier plotting
+if df['Churn'].dtype == 'object':
+    le_churn = LabelEncoder()
+    df['Churn_Encoded'] = le_churn.fit_transform(df['Churn'])
+    # Map 0 to 'No' and 1 to 'Yes' for clarity in plots
+    df['Churn_Label'] = df['Churn'].map({'No': 0, 'Yes': 1})
+else:
+    df['Churn_Encoded'] = df['Churn']
+    df['Churn_Label'] = df['Churn'] # Assuming it's already 0/1 if not object
+
+# --- Task 4: Churn Prediction Model ---
+
+# Select relevant features for modeling
+features = ['SeniorCitizen', 'Partner', 'Dependents', 'tenure', 'PhoneService', 'MultipleLines', 'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies', 'Contract', 'PaperlessBilling', 'PaymentMethod', 'MonthlyCharges', 'TotalCharges']
+
+# Split data into training and testing sets
+X = df[features]
+y = df['Churn_Label']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Scale the features using StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Define and train multiple models
+models = {
+    'Logistic Regression': LogisticRegression(),
+    'Decision Tree': DecisionTreeClassifier(),
+    'Random Forest': RandomForestClassifier()
+}
+
+# Train and evaluate each model
+for model_name, model in models.items():
+    model.fit(X_train_scaled, y_train)
+    y_pred = model.predict(X_test_scaled)
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    print(f"Model: {model_name}")
+    print(f"Accuracy: {accuracy:.3f}")
+    print(f"Precision: {precision:.3f}")
+    print(f"Recall: {recall:.3f}")
+    print(f"F1-score: {f1:.3f}")
+    print()
+
+# Perform feature selection and hyperparameter tuning for optimal performance
+from sklearn.feature_selection import SelectKBest
+from sklearn.model_selection import GridSearchCV
+
+# SelectKBest for feature selection
+selector = SelectKBest(k=10)
+X_train_selected = selector.fit_transform(X_train_scaled)
+X_test_selected = selector.transform(X_test_scaled)
+
+# Define hyperparameter tuning space
+param_grid = {
+    'Logistic Regression': {'C': [0.1, 1, 10]},
+    'Decision Tree': {'criterion': ['gini', 'entropy'], 'max_depth': [5, 10, 15]},
+    'Random Forest': {'n_estimators': [50, 100, 200], 'max_depth': [5, 10, 15]}
+}
+
+# Perform GridSearchCV for hyperparameter tuning
+for model_name, model in models.items():
+    if model_name == 'Logistic Regression':
+        grid_search = GridSearchCV(model, param_grid[model_name], cv=5)
+    elif model_name == 'Decision Tree':
+        grid_search = GridSearchCV(model, param_grid[model_name], cv=5)
+    elif model_name == 'Random Forest':
+        grid_search = GridSearchCV(model, param_grid[model_name], cv=5)
+    grid_search.fit(X_train_selected, y_train)
+    print(f"Best Parameters for {model_name}: {grid_search.best_params_}")
+    print(f"Best Score for {model_name}: {grid_search.best_score_}")
+    print()
